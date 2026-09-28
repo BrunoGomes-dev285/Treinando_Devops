@@ -1,0 +1,1807 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DOOM: Rip & Tear - Terminal Infernal</title>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Press+Start+2P&family=Teko:wght@600;700&family=Share+Tech+Mono&display=swap');
+
+    :root {
+      --bg-dark: #070404;
+      --panel-bg: rgba(22, 12, 12, 0.88);
+      --panel-border: #4a1515;
+      --red-primary: #ff2a00;
+      --red-dark: #8b0000;
+      --orange-flame: #ff6600;
+      --gold-armor: #ffaa00;
+      --slime-green: #00ff41;
+      --plasma-blue: #00d9ff;
+      --text-main: #e0d0d0;
+      --text-muted: #887070;
+      --hud-gray: #333338;
+      --hud-border: #666670;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: 'Orbitron', sans-serif;
+      overflow-x: hidden;
+      min-height: 100vh;
+      position: relative;
+    }
+
+    /* Background Embers Canvas */
+    #ember-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* CRT Overlay Effect */
+    .crt-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 999;
+      pointer-events: none;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.25),
+        rgba(0, 0, 0, 0.25) 1px,
+        transparent 1px,
+        transparent 2px
+      );
+      display: none;
+      opacity: 0.85;
+    }
+
+    .crt-overlay.active {
+      display: block;
+    }
+
+    /* Fullscreen Screen Flash for Actions */
+    #screen-flash {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 998;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.05s ease-out;
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 5, 5, 0.95);
+      border-bottom: 2px solid var(--red-primary);
+      box-shadow: 0 4px 25px rgba(255, 42, 0, 0.3);
+      backdrop-filter: blur(8px);
+    }
+
+    .header-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .brand-logo {
+      font-family: 'Teko', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--red-primary);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      text-shadow: 0 0 10px var(--red-primary), 0 0 20px var(--orange-flame);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo span {
+      color: #fff;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 15px;
+      list-style: none;
+      flex-wrap: wrap;
+    }
+
+    .nav-link {
+      color: var(--text-main);
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      padding: 6px 12px;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .nav-link:hover, .nav-link.active {
+      color: #fff;
+      border-color: var(--red-primary);
+      background: rgba(255, 42, 0, 0.15);
+      box-shadow: 0 0 12px rgba(255, 42, 0, 0.4);
+    }
+
+    .controls-bar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn-toggle {
+      background: var(--panel-bg);
+      border: 1px solid var(--red-dark);
+      color: var(--text-main);
+      padding: 6px 12px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-toggle:hover {
+      border-color: var(--red-primary);
+      color: #fff;
+      box-shadow: 0 0 10px rgba(255, 42, 0, 0.3);
+    }
+
+    .hero-section {
+      position: relative;
+      z-index: 10;
+      min-height: 75vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 60px 20px;
+      background: radial-gradient(circle at center, rgba(139, 0, 0, 0.25) 0%, rgba(7, 4, 4, 0.95) 75%);
+    }
+
+    .hero-title {
+      font-family: 'Teko', sans-serif;
+      font-size: clamp(3.5rem, 8vw, 7.5rem);
+      line-height: 0.9;
+      font-weight: 700;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      margin-bottom: 15px;
+      text-shadow: 0 0 20px var(--red-primary), 0 0 40px var(--orange-flame), 0 0 60px var(--red-dark);
+      animation: flameGlow 2.5s infinite alternate;
+    }
+
+    @keyframes flameGlow {
+      0% { text-shadow: 0 0 15px var(--red-primary), 0 0 30px var(--orange-flame); }
+      50% { text-shadow: 0 0 25px var(--red-primary), 0 0 50px var(--red-primary), 0 0 70px var(--orange-flame); }
+      100% { text-shadow: 0 0 20px var(--red-primary), 0 0 35px rgba(255, 102, 0, 0.8); }
+    }
+
+    .hero-subtitle {
+      font-size: clamp(1rem, 2vw, 1.4rem);
+      color: var(--orange-flame);
+      letter-spacing: 3px;
+      margin-bottom: 35px;
+      text-transform: uppercase;
+      text-shadow: 0 0 8px rgba(255, 102, 0, 0.6);
+    }
+
+    .hero-cta-group {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn-main {
+      background: linear-gradient(135deg, var(--red-dark) 0%, var(--red-primary) 100%);
+      color: #fff;
+      border: 2px solid var(--orange-flame);
+      padding: 14px 32px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 0 15px rgba(255, 42, 0, 0.5);
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-main:hover {
+      transform: translateY(-3px) scale(1.03);
+      box-shadow: 0 0 30px rgba(255, 42, 0, 0.8), 0 0 10px var(--orange-flame);
+      border-color: #fff;
+    }
+
+    .btn-secondary {
+      background: rgba(30, 15, 15, 0.8);
+      color: var(--text-main);
+      border: 2px solid var(--panel-border);
+      padding: 14px 32px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--red-primary);
+      color: #fff;
+      background: rgba(60, 20, 20, 0.8);
+    }
+
+    .section-container {
+      position: relative;
+      z-index: 10;
+      max-width: 1200px;
+      margin: 0 auto 80px auto;
+      padding: 0 20px;
+    }
+
+    .section-header {
+      border-bottom: 2px solid var(--panel-border);
+      padding-bottom: 12px;
+      margin-bottom: 35px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .section-title {
+      font-family: 'Teko', sans-serif;
+      font-size: 2.8rem;
+      color: var(--red-primary);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-shadow: 0 0 10px rgba(255, 42, 0, 0.4);
+    }
+
+    .section-title::before {
+      content: '';
+      display: inline-block;
+      width: 12px;
+      height: 28px;
+      background: var(--red-primary);
+      box-shadow: 0 0 10px var(--red-primary);
+    }
+
+    .hud-wrapper {
+      background: #111115;
+      border: 4px solid var(--hud-border);
+      border-radius: 6px;
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.9), 0 0 25px rgba(0, 0, 0, 0.8);
+      padding: 15px;
+      margin-bottom: 40px;
+    }
+
+    .hud-panel {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+      align-items: center;
+      background: #1a1a20;
+      border: 2px solid #333338;
+      padding: 15px;
+      border-radius: 4px;
+    }
+
+    .hud-block {
+      background: #09090c;
+      border: 2px solid #282830;
+      padding: 12px;
+      text-align: center;
+      border-radius: 4px;
+    }
+
+    .hud-label {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.65rem;
+      color: #888899;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .hud-value {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 1.8rem;
+      font-weight: bold;
+    }
+
+    .hud-value.health { color: var(--red-primary); text-shadow: 0 0 8px var(--red-primary); }
+    .hud-value.armor { color: var(--gold-armor); text-shadow: 0 0 8px var(--gold-armor); }
+    .hud-value.ammo { color: var(--slime-green); text-shadow: 0 0 8px var(--slime-green); }
+
+    .doomguy-face-box {
+      width: 110px;
+      height: 120px;
+      margin: 0 auto;
+      background: #25252e;
+      border: 3px solid #444450;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 4px;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s;
+    }
+
+    .doomguy-face-box:hover {
+      border-color: var(--red-primary);
+    }
+
+    .hud-controls {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+
+    .hud-btn {
+      background: #221111;
+      border: 1px solid var(--red-dark);
+      color: var(--text-main);
+      padding: 10px 16px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .hud-btn:hover {
+      background: var(--red-dark);
+      color: #fff;
+      box-shadow: 0 0 12px rgba(255, 42, 0, 0.5);
+    }
+
+    .hud-btn.godmode {
+      border-color: var(--gold-armor);
+      color: var(--gold-armor);
+    }
+
+    .hud-btn.godmode.active {
+      background: var(--gold-armor);
+      color: #000;
+      box-shadow: 0 0 15px var(--gold-armor);
+    }
+
+    .weapons-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 25px;
+    }
+
+    .weapon-card {
+      background: var(--panel-bg);
+      border: 2px solid var(--panel-border);
+      border-radius: 6px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .weapon-card:hover {
+      border-color: var(--red-primary);
+      transform: translateY(-5px);
+      box-shadow: 0 8px 25px rgba(255, 42, 0, 0.25);
+    }
+
+    .weapon-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .weapon-name {
+      font-family: 'Teko', sans-serif;
+      font-size: 1.8rem;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+
+    .weapon-type {
+      font-size: 0.7rem;
+      color: var(--orange-flame);
+      background: rgba(255, 102, 0, 0.15);
+      padding: 3px 8px;
+      border-radius: 3px;
+      border: 1px solid rgba(255, 102, 0, 0.3);
+    }
+
+    .weapon-svg-wrapper {
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 15px 0;
+      background: rgba(0,0,0,0.4);
+      border-radius: 4px;
+      border: 1px dashed rgba(255,255,255,0.08);
+      padding: 10px;
+    }
+
+    .weapon-svg-wrapper svg {
+      max-height: 100%;
+      max-width: 100%;
+      filter: drop-shadow(0 0 8px rgba(255, 42, 0, 0.3));
+      transition: transform 0.15s ease;
+    }
+
+    .weapon-card:hover .weapon-svg-wrapper svg {
+      transform: scale(1.05);
+    }
+
+    .stat-row {
+      margin-bottom: 10px;
+    }
+
+    .stat-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .stat-bar-bg {
+      width: 100%;
+      height: 8px;
+      background: #1e1515;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid #3d2020;
+    }
+
+    .stat-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--red-dark) 0%, var(--red-primary) 100%);
+      border-radius: 4px;
+    }
+
+    .btn-fire-weapon {
+      margin-top: 18px;
+      background: rgba(139, 0, 0, 0.4);
+      border: 1px solid var(--red-primary);
+      color: #fff;
+      padding: 10px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .btn-fire-weapon:hover {
+      background: var(--red-primary);
+      box-shadow: 0 0 15px rgba(255, 42, 0, 0.6);
+    }
+
+    .bestiary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 25px;
+    }
+
+    .demon-card {
+      background: var(--panel-bg);
+      border: 2px solid var(--panel-border);
+      border-radius: 6px;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .demon-card:hover {
+      border-color: var(--orange-flame);
+      box-shadow: 0 8px 30px rgba(255, 102, 0, 0.25);
+    }
+
+    .demon-header {
+      background: linear-gradient(180deg, rgba(40, 10, 10, 0.9) 0%, rgba(20, 5, 5, 0.9) 100%);
+      padding: 15px 20px;
+      border-bottom: 1px solid var(--panel-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .demon-name {
+      font-family: 'Teko', sans-serif;
+      font-size: 2rem;
+      color: var(--red-primary);
+      letter-spacing: 1px;
+    }
+
+    .demon-threat {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 12px;
+      text-transform: uppercase;
+    }
+
+    .threat-extreme { background: rgba(255, 0, 0, 0.25); color: #ff3333; border: 1px solid #ff3333; }
+    .threat-high { background: rgba(255, 102, 0, 0.25); color: #ff9900; border: 1px solid #ff9900; }
+    .threat-medium { background: rgba(255, 204, 0, 0.25); color: #ffcc00; border: 1px solid #ffcc00; }
+
+    .demon-body {
+      padding: 20px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .demon-graphic {
+      height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 15px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .demon-graphic svg {
+      max-height: 110px;
+      filter: drop-shadow(0 0 12px rgba(255, 0, 0, 0.4));
+    }
+
+    .demon-desc {
+      font-size: 0.85rem;
+      line-height: 1.5;
+      color: var(--text-main);
+      margin-bottom: 15px;
+    }
+
+    .weakness-box {
+      background: rgba(0, 0, 0, 0.4);
+      border-left: 3px solid var(--orange-flame);
+      padding: 8px 12px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .weakness-box strong {
+      color: var(--orange-flame);
+    }
+
+    .timeline-container {
+      position: relative;
+      padding: 20px 0;
+    }
+
+    .timeline-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 4px;
+      background: linear-gradient(180deg, var(--red-dark) 0%, var(--red-primary) 50%, var(--orange-flame) 100%);
+      transform: translateX(-50%);
+      box-shadow: 0 0 12px var(--red-primary);
+    }
+
+    .timeline-item {
+      position: relative;
+      width: 50%;
+      padding: 0 30px;
+      margin-bottom: 40px;
+      box-sizing: border-box;
+    }
+
+    .timeline-item:nth-child(odd) {
+      left: 0;
+      text-align: right;
+    }
+
+    .timeline-item:nth-child(even) {
+      left: 50%;
+      text-align: left;
+    }
+
+    .timeline-dot {
+      position: absolute;
+      top: 15px;
+      width: 20px;
+      height: 20px;
+      background: var(--red-primary);
+      border: 4px solid var(--bg-dark);
+      border-radius: 50%;
+      box-shadow: 0 0 15px var(--red-primary);
+      z-index: 2;
+    }
+
+    .timeline-item:nth-child(odd) .timeline-dot {
+      right: -10px;
+    }
+
+    .timeline-item:nth-child(even) .timeline-dot {
+      left: -10px;
+    }
+
+    .timeline-content {
+      background: var(--panel-bg);
+      border: 2px solid var(--panel-border);
+      border-radius: 6px;
+      padding: 20px;
+      transition: all 0.3s;
+    }
+
+    .timeline-content:hover {
+      border-color: var(--red-primary);
+      box-shadow: 0 0 20px rgba(255, 42, 0, 0.3);
+    }
+
+    .timeline-year {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.9rem;
+      color: var(--orange-flame);
+      margin-bottom: 8px;
+    }
+
+    .timeline-title {
+      font-family: 'Teko', sans-serif;
+      font-size: 2rem;
+      color: #fff;
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+
+    .timeline-text {
+      font-size: 0.85rem;
+      color: var(--text-main);
+      line-height: 1.5;
+    }
+
+    .terminal-wrapper {
+      background: #020a02;
+      border: 3px solid #005500;
+      border-radius: 6px;
+      box-shadow: 0 0 30px rgba(0, 255, 65, 0.2), inset 0 0 15px rgba(0, 255, 65, 0.1);
+      padding: 20px;
+      font-family: 'Share Tech Mono', monospace;
+      color: var(--slime-green);
+    }
+
+    .terminal-header {
+      border-bottom: 1px dashed #008800;
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+    }
+
+    .terminal-log {
+      height: 180px;
+      overflow-y: auto;
+      margin-bottom: 15px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .terminal-line {
+      word-break: break-all;
+    }
+
+    .terminal-input-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(0, 30, 0, 0.5);
+      border: 1px solid #00aa00;
+      padding: 8px 12px;
+      border-radius: 4px;
+    }
+
+    .terminal-prompt {
+      font-weight: bold;
+      color: var(--slime-green);
+    }
+
+    .terminal-input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--slime-green);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 1rem;
+      width: 100%;
+      text-transform: uppercase;
+    }
+
+    .cheat-btns {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+
+    .cheat-btn {
+      background: rgba(0, 40, 0, 0.6);
+      border: 1px solid #00aa00;
+      color: var(--slime-green);
+      padding: 6px 12px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 0.8rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .cheat-btn:hover {
+      background: #00aa00;
+      color: #000;
+      box-shadow: 0 0 10px var(--slime-green);
+    }
+
+    .site-footer {
+      position: relative;
+      z-index: 10;
+      background: #050303;
+      border-top: 2px solid var(--panel-border);
+      padding: 40px 20px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+    }
+
+    .footer-quote {
+      font-family: 'Teko', sans-serif;
+      font-size: 1.8rem;
+      color: var(--red-primary);
+      margin-bottom: 10px;
+      letter-spacing: 2px;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .header-container { flex-direction: column; text-align: center; }
+      .nav-links { justify-content: center; }
+      .timeline-container::before { left: 20px; }
+      .timeline-item { width: 100%; padding-left: 50px; padding-right: 0; }
+      .timeline-item:nth-child(odd), .timeline-item:nth-child(even) { left: 0; text-align: left; }
+      .timeline-item:nth-child(odd) .timeline-dot, .timeline-item:nth-child(even) .timeline-dot { left: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ember Particles Canvas -->
+  <canvas id="ember-canvas"></canvas>
+
+  <!-- CRT Overlay Scanlines -->
+  <div id="crt-overlay" class="crt-overlay"></div>
+
+  <!-- Fullscreen Flash Container -->
+  <div id="screen-flash"></div>
+
+  <header class="site-header">
+    <div class="header-container">
+      <div class="brand-logo">
+        DOOM <span>NEXUS</span>
+      </div>
+      <nav>
+        <ul class="nav-links">
+          <li><a href="#hud-section" class="nav-link active">HUD</a></li>
+          <li><a href="#arsenal-section" class="nav-link">ARSENAL</a></li>
+          <li><a href="#bestiary-section" class="nav-link">BESTIÁRIO</a></li>
+          <li><a href="#timeline-section" class="nav-link">LINHA DO TEMPO</a></li>
+          <li><a href="#terminal-section" class="nav-link">CHEATS</a></li>
+        </ul>
+      </nav>
+      <div class="controls-bar">
+        <button id="btn-crt" class="btn-toggle">
+          <span>📺</span> CRT SCANLINES
+        </button>
+        <button id="btn-audio-synth" class="btn-toggle">
+          <span>🎸</span> RIFF METAL
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <section class="hero-section">
+    <h1 class="hero-title">RIP & TEAR UNTIL IT IS DONE</h1>
+    <p class="hero-subtitle">A SAGA DO DOOM SLAYER ATRAVÉS DAS DÉCADAS DO INFERNO</p>
+    <div class="hero-cta-group">
+      <a href="#arsenal-section" class="btn-main">EXPLORAR ARSENAL</a>
+      <a href="#hud-section" class="btn-secondary">INTERAGIR COM HUD</a>
+    </div>
+  </section>
+
+  <section id="hud-section" class="section-container">
+    <div class="section-header">
+      <h2 class="section-title">HUD INTERATIVO DO DOOMGUY</h2>
+    </div>
+
+    <div class="hud-wrapper">
+      <div class="hud-panel">
+        <!-- AMMO BLOCK -->
+        <div class="hud-block">
+          <div class="hud-label">MUNIÇÃO</div>
+          <div id="hud-ammo-val" class="hud-value ammo">100</div>
+        </div>
+
+        <!-- HEALTH BLOCK -->
+        <div class="hud-block">
+          <div class="hud-label">VIDA</div>
+          <div id="hud-health-val" class="hud-value health">100%</div>
+        </div>
+
+        <!-- DOOMGUY FACE -->
+        <div class="doomguy-face-box" id="doomguy-face-container" title="Clique para provocar o Doomguy!">
+          <svg id="doomguy-svg" viewBox="0 0 100 100" width="90" height="90">
+            <!-- Head background -->
+            <rect x="20" y="15" width="60" height="70" rx="10" fill="#e0a080" />
+            <!-- Hair -->
+            <path d="M 20 25 Q 50 10 80 25 L 80 15 L 20 15 Z" fill="#4a2e18" />
+            <!-- Brows -->
+            <path id="brows" d="M 28 35 L 45 40 M 55 40 L 72 35" stroke="#331a00" stroke-width="4" stroke-linecap="round" />
+            <!-- Eyes Base -->
+            <rect x="28" y="42" width="14" height="10" fill="#fff" />
+            <rect x="58" y="42" width="14" height="10" fill="#fff" />
+            <!-- Pupils -->
+            <circle id="pupil-left" cx="35" cy="47" r="3" fill="#111" />
+            <circle id="pupil-right" cx="65" cy="47" r="3" fill="#111" />
+            <!-- Nose -->
+            <polygon points="50,50 45,60 55,60" fill="#c08060" />
+            <!-- Mouth -->
+            <path id="mouth" d="M 35 70 Q 50 65 65 70" stroke="#600" stroke-width="4" fill="none" stroke-linecap="round" />
+            <!-- Wounds (Hidden by default) -->
+            <path id="wound-light" d="M 25 30 L 35 38" stroke="#a00" stroke-width="3" opacity="0" />
+            <path id="wound-heavy" d="M 60 55 L 75 68 M 30 65 L 45 75" stroke="#900" stroke-width="4" opacity="0" />
+            <!-- Godmode Eyes overlay -->
+            <circle id="god-left" cx="35" cy="47" r="5" fill="#ffff00" opacity="0" />
+            <circle id="god-right" cx="65" cy="47" r="5" fill="#ffff00" opacity="0" />
+          </svg>
+        </div>
+
+        <!-- ARMOR BLOCK -->
+        <div class="hud-block">
+          <div class="hud-label">ARMADURA</div>
+          <div id="hud-armor-val" class="hud-value armor">100%</div>
+        </div>
+
+        <!-- WEAPON SELECTED BLOCK -->
+        <div class="hud-block">
+          <div class="hud-label">ARMA ATIVA</div>
+          <div id="hud-weapon-val" class="hud-value" style="font-size: 0.9rem; color: #fff; margin-top: 10px;">SUPER SHOTGUN</div>
+        </div>
+      </div>
+
+      <!-- CONTROLS -->
+      <div class="hud-controls">
+        <button id="btn-take-damage" class="hud-btn">⚡ RECEBER DANO (-25%)</button>
+        <button id="btn-use-medkit" class="hud-btn">💉 MEDKIT (+25%)</button>
+        <button id="btn-god-mode" class="hud-btn godmode">👑 GOD MODE (IDDQD)</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="arsenal-section" class="section-container">
+    <div class="section-header">
+      <h2 class="section-title">SHOWCASE DO ARSENAL</h2>
+    </div>
+
+    <div class="weapons-grid">
+      <!-- SUPER SHOTGUN -->
+      <div class="weapon-card">
+        <div>
+          <div class="weapon-header">
+            <h3 class="weapon-name">SUPER SHOTGUN</h3>
+            <span class="weapon-type">BALÍSTICA</span>
+          </div>
+          <div class="weapon-svg-wrapper">
+            <svg viewBox="0 0 200 80" width="180">
+              <rect x="20" y="35" width="110" height="12" fill="#555" rx="2" />
+              <rect x="20" y="25" width="110" height="12" fill="#444" rx="2" />
+              <path d="M 130 30 L 170 55 L 150 65 L 120 40 Z" fill="#3a2010" />
+              <rect x="110" y="32" width="25" height="18" fill="#222" />
+            </svg>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">A lendária espingarda de cano duplo com gancho de mefisto. Devastadora a curta distância.</p>
+          
+          <div class="stat-row">
+            <div class="stat-label"><span>DANO</span><span>95%</span></div>
+            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 95%;"></div></div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-label"><span>CADÊNCIA</span><span>30%</span></div>
+            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 30%;"></div></div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-label"><span>ALCANCE</span><span>40%</span></div>
+            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 40%;"></div></div>
+          </div>
+        </div>
+        <button class="btn-fire-weapon" onclick="fireWeapon('ssg')">💥 DISPARAR (SYNTH)</button>
+      </div>
+
+      <!-- BFG 9000 -->
+      <div class="weapon-card">
+        <div>
+          <div class="weapon-header">
+            <h3 class="weapon-name">BFG 9000</h3>
+            <span class="weapon-type" style="color: var(--slime-green); border-color: var(--slime-green);">ENERGIA BFG</span>
+          </div>
+          <div class="weapon-svg-wrapper">
+            <svg viewBox="0 0 200 80" width="180">
+              <rect x="30" y="20" width="120" height="40" fill="#2a302a" rx="4" />
+              <circle cx="80" cy="40" r="16" fill="#00ff41" opacity="0.8" />
+              <rect x="150" y="28" width="25" height="24" fill="#111" />
+              <rect x="15" y="32" width="20" height="16" fill="#444" />
+            </svg>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Big Fucking Gun. Dispara uma esfera de plasma verde argenta que vaporiza salas inteiras.</p>
+
+          <div class="stat-row">
+            <div class="stat-label"><span>DANO</span><span>100%</span></div>
+            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 100%; background: var(--slime-green);"></div></div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-label"><span>CADÊNCIA</span><span>15%</span></div>
+            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 15%;"></div></div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-label"><span>ALCANCE</span><span>90%</span></div>
+            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 90%;"></div></div>
+          </div>
+        </div>
+        <button class="btn-fire-weapon" onclick="fireWeapon('bfg')">🟢 DISPARAR BFG</button>
+      </div>
+
+      <!-- CRUCIBLE BLADE -->
+      <div class="weapon-card">
+        <div>
+          <div class="weapon-header">
+            <h3 class="weapon-name">CRUCIBLE</h3>
+            <span class="weapon-type" style="color: var(--red-primary); border-color: var(--red-primary);">LÂMINA ARGENT</span>
+          </div>
+          <div class="weapon-svg-wrapper">
+            <svg viewBox="0 0 200 80" width="180">
+              <path d="M 20 40 L 140 32 L 175 40 L 140 48 Z" fill="#ff2a00" filter="drop-shadow(0 0 8px #ff2a00)" />
+              <rect x="140" y="30" width="30" height="20" fill="#222" />
+              <circle cx="155" cy="40" r="5" fill="#ff6600" />
+            </svg>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Espada de pura energia infernal capaz de decapitar demônios titânicos instantaneamente.</p>
+
+          <div class="stat-row">
+            <div class="stat-label"><span>DANO</span><span>100%</span></div>
+            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 100%;"></div></div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-label"><span>CADÊNCIA</span><span>50%</span></div>
+            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 50%;"></div></div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-label"><span>ALCANCE</span><span>20%</span></div>
+            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 20%;"></div></div>
+          </div>
+        </div>
+        <button class="btn-fire-weapon" onclick="fireWeapon('crucible')">⚔️ GOLPE CRUCIAL</button>
+      </div>
+
+      <!-- PLASMA RIFLE -->
+      <div class="weapon-card">
+        <div>
+          <div class="weapon-header">
+            <h3 class="weapon-name">PLASMA RIFLE</h3>
+            <span class="weapon-type" style="color: var(--plasma-blue); border-color: var(--plasma-blue);">PLASMA</span>
+          </div>
+          <div class="weapon-svg-wrapper">
+            <svg viewBox="0 0 200 80" width="180">
+              <rect x="30" y="30" width="110" height="20" fill="#223344" rx="3" />
+              <rect x="140" y="25" width="25" height="30" fill="#111" />
+              <circle cx="70" cy="40" r="8" fill="#00d9ff" />
+              <circle cx="100" cy="40" r="8" fill="#00d9ff" />
+            </svg>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 15px;">Fuzil de repetição rápida disparando projéteis plasmáticos superaquecidos.</p>
+
+          <div class="stat-row">
+            <div class="stat-label"><span>DANO</span><span>60%</span></div>
+            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 60%; background: var(--plasma-blue);"></div></div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-label"><span>CADÊNCIA</span><span>88%</span></div>
+            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 88%;"></div></div>
+          </div>
+          <div class="stat-row">
+            <div class="stat-label"><span>ALCANCE</span><span>75%</span></div>
+            <div class="stat-bar-bg"><div class="stat-bar-fill" style="width: 75%;"></div></div>
+          </div>
+        </div>
+        <button class="btn-fire-weapon" onclick="fireWeapon('plasma')">⚡ METRALHAR PLASMA</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="bestiary-section" class="section-container">
+    <div class="section-header">
+      <h2 class="section-title">BESTIÁRIO DO INFERNO</h2>
+    </div>
+
+    <div class="bestiary-grid">
+      <!-- CACODEMON -->
+      <div class="demon-card">
+        <div class="demon-header">
+          <h3 class="demon-name">CACODEMON</h3>
+          <span class="demon-threat threat-medium">AMEAÇA MÉDIA</span>
+        </div>
+        <div class="demon-body">
+          <div class="demon-graphic">
+            <svg viewBox="0 0 100 100" width="90">
+              <circle cx="50" cy="50" r="40" fill="#aa1111" />
+              <circle cx="50" cy="35" r="12" fill="#00d9ff" />
+              <circle cx="50" cy="35" r="4" fill="#fff" />
+              <path d="M 25 65 Q 50 85 75 65" stroke="#440000" stroke-width="6" fill="#111" />
+              <polygon points="35,65 40,72 45,65" fill="#fff" />
+              <polygon points="55,65 60,72 65,65" fill="#fff" />
+            </svg>
+          </div>
+          <p class="demon-desc">Demônio esférico voador de um só olho que dispara bolas de plasma de sua boca salivante.</p>
+          <div class="weakness-box">
+            <strong>PONTO FRACO:</strong> Engolir granadas do Lança-Granadas causa tontura imediata para Glory Kill.
+          </div>
+        </div>
+      </div>
+
+      <!-- CYBERDEMON -->
+      <div class="demon-card">
+        <div class="demon-header">
+          <h3 class="demon-name">CYBERDEMON</h3>
+          <span class="demon-threat threat-extreme">EXTREMA / CHEFE</span>
+        </div>
+        <div class="demon-body">
+          <div class="demon-graphic">
+            <svg viewBox="0 0 100 100" width="90">
+              <rect x="25" y="20" width="50" height="60" fill="#553322" rx="6" />
+              <path d="M 20 15 L 35 25 M 80 15 L 65 25" stroke="#ffaa00" stroke-width="6" />
+              <circle cx="40" cy="35" r="4" fill="#ff0000" />
+              <circle cx="60" cy="35" r="4" fill="#ff0000" />
+              <rect x="10" y="45" width="20" height="25" fill="#666" />
+            </svg>
+          </div>
+          <p class="demon-desc">A fusão suprema de carne demoníaca e cibernética UAC. Equipado com um lança-mísseis no braço.</p>
+          <div class="weakness-box">
+            <strong>PONTO FRACO:</strong> Foco contínuo de dano no canhão de braço e esquiva lateral de mísseis.
+          </div>
+        </div>
+      </div>
+
+      <!-- MARAUDER -->
+      <div class="demon-card">
+        <div class="demon-header">
+          <h3 class="demon-name">MARAUDER</h3>
+          <span class="demon-threat threat-high">AMEAÇA ALTA</span>
+        </div>
+        <div class="demon-body">
+          <div class="demon-graphic">
+            <svg viewBox="0 0 100 100" width="90">
+              <path d="M 30 20 L 50 10 L 70 20 L 65 70 L 35 70 Z" fill="#334433" />
+              <path d="M 20 10 L 35 25 M 80 10 L 65 25" stroke="#ff0000" stroke-width="5" />
+              <line x1="38" y1="35" x2="62" y2="35" stroke="#ff0000" stroke-width="4" />
+            </svg>
+          </div>
+          <p class="demon-desc">Ex-Sentinela corrompido equipado com um escudo de energia impenetrável e um machado de plasma.</p>
+          <div class="weakness-box">
+            <strong>PONTO FRACO:</strong> Atacar apenas a média distância quando seus olhos piscarem em verde.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="timeline-section" class="section-container">
+    <div class="section-header">
+      <h2 class="section-title">LINHA DO TEMPO DA FRANQUIA</h2>
+    </div>
+
+    <div class="timeline-container">
+      <!-- 1993 -->
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="timeline-year">1993</div>
+          <h3 class="timeline-title">DOOM (ORIGINAL)</h3>
+          <p class="timeline-text">Criado pela id Software, revolucionou o gênero FPS. O fuzileiro espacial combate a invasão demoníaca nas luas de Marte, Phobos e Deimos.</p>
+        </div>
+      </div>
+
+      <!-- 1994 -->
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="timeline-year">1994</div>
+          <h3 class="timeline-title">DOOM II: HELL ON EARTH</h3>
+          <p class="timeline-text">A invasão atinge a Terra. Introduziu a lendária Super Shotgun e o terrível Icon of Sin no nível final.</p>
+        </div>
+      </div>
+
+      <!-- 2004 -->
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="timeline-year">2004</div>
+          <h3 class="timeline-title">DOOM 3</h3>
+          <p class="timeline-text">Um reboot focado em survival horror com gráficos de iluminação dinâmica inovadores para a época nas instalações da UAC.</p>
+        </div>
+      </div>
+
+      <!-- 2016 -->
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="timeline-year">2016</div>
+          <h3 class="timeline-title">DOOM (REBOOT)</h3>
+          <p class="timeline-text">Retorno triunfal às raízes com combate frenético, Glory Kills brutais e a consagração do lendário DOOM Slayer.</p>
+        </div>
+      </div>
+
+      <!-- 2020 -->
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="timeline-year">2020</div>
+          <h3 class="timeline-title">DOOM ETERNAL</h3>
+          <p class="timeline-text">Evolução do combate tático no ar, Dash, Flame Belch e exploração expandida do universo dos Night Sentinels.</p>
+        </div>
+      </div>
+
+      <!-- 2025 -->
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="timeline-year">2025</div>
+          <h3 class="timeline-title">DOOM: THE DARK AGES</h3>
+          <p class="timeline-text">A pré-sequência brutal revelando a origem medieval do Slayer com o Escudo de Serra e combates massivos com Mechas.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="terminal-section" class="section-container">
+    <div class="section-header">
+      <h2 class="section-title">CONSOLE DE CHEATS CLÁSSICOS</h2>
+    </div>
+
+    <div class="terminal-wrapper">
+      <div class="terminal-header">
+        <span>UAC DOS SYSTEM v6.66</span>
+        <span>STATUS: SYSTEM CONNECTED</span>
+      </div>
+      <div class="terminal-log" id="terminal-log">
+        <div class="terminal-line">> INICIALIZANDO TERMINAL DA UAC...</div>
+        <div class="terminal-line">> DIGITE OS CÓDIGOS CLÁSSICOS DO DOOM (EX: IDDQD, IDKFA, IDCLIP) OU CLIQUE NOS BOTÕES.</div>
+      </div>
+      <div class="terminal-input-row">
+        <span class="terminal-prompt">C:\DOOM&gt;</span>
+        <input type="text" id="terminal-input" class="terminal-input" placeholder="DIGITE O CÓDIGO AQUI..." autocomplete="off">
+      </div>
+      <div class="cheat-btns">
+        <button class="cheat-btn" onclick="executeCheat('IDDQD')">IDDQD (GOD MODE)</button>
+        <button class="cheat-btn" onclick="executeCheat('IDKFA')">IDKFA (TODAS ARMAS/MUN)</button>
+        <button class="cheat-btn" onclick="executeCheat('IDCLIP')">IDCLIP (NOCLIP)</button>
+        <button class="cheat-btn" onclick="executeCheat('SLAYER')">SLAYER (OVERPOWER)</button>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="footer-quote">"THEY ARE RAGE, BRUTAL, WITHOUT MERCY. BUT YOU. YOU WILL BE WORSE."</div>
+    <p>© DOOM FAN PAGE - CRIADO COM HTML, CSS INTERNO E WEB AUDIO SYNTH</p>
+  </footer>
+
+  <script>
+    const AudioEngine = {
+      ctx: null,
+      init() {
+        if (!this.ctx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) {
+            this.ctx = new AudioContextClass();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      },
+
+      // Shotgun blast synth
+      playShotgun() {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+
+        // Noise buffer for shotgun pop
+        const bufferSize = this.ctx.sampleRate * 0.35;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(3500, now);
+        filter.frequency.exponentialRampToValueAtTime(120, now + 0.3);
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(1.0, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+
+        // Low frequency punch
+        const osc = this.ctx.createOscillator();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(130, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.25);
+
+        const oscGain = this.ctx.createGain();
+        oscGain.gain.setValueAtTime(0.8, now);
+        oscGain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.connect(oscGain);
+        oscGain.connect(this.ctx.destination);
+
+        noise.start(now);
+        osc.start(now);
+        noise.stop(now + 0.35);
+        osc.stop(now + 0.3);
+      },
+
+      // BFG Charge & Explosion synth
+      playBFG() {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+
+        const osc = this.ctx.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(90, now);
+        osc.frequency.exponentialRampToValueAtTime(900, now + 0.7);
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.8, now + 0.7);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 1.2);
+
+        // Plasma boom after charge
+        setTimeout(() => {
+          if (!this.ctx) return;
+          const t = this.ctx.currentTime;
+          const bufSize = this.ctx.sampleRate * 0.8;
+          const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
+          const d = buf.getChannelData(0);
+          for (let i = 0; i < bufSize; i++) d[i] = Math.random() * 2 - 1;
+
+          const n = this.ctx.createBufferSource();
+          n.buffer = buf;
+          const f = this.ctx.createBiquadFilter();
+          f.type = 'lowpass';
+          f.frequency.value = 1800;
+
+          const g = this.ctx.createGain();
+          g.gain.setValueAtTime(1.0, t);
+          g.gain.exponentialRampToValueAtTime(0.001, t + 0.8);
+
+          n.connect(f);
+          f.connect(g);
+          g.connect(this.ctx.destination);
+          n.start(t);
+        }, 700);
+      },
+
+      // Plasma Rifle Synth
+      playPlasma() {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+
+        const osc = this.ctx.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(1400, now);
+        osc.frequency.exponentialRampToValueAtTime(300, now + 0.12);
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.12);
+      },
+
+      // Crucible Sword Blade Swing Synth
+      playCrucible() {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+
+        const osc = this.ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(800, now + 0.2);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.4);
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.7, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.4);
+      },
+
+      // Heavy Metal Distortion Riff Synth
+      playMetalRiff() {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const notes = [82.41, 82.41, 110.00, 82.41, 98.00, 92.50]; // Heavy E-string power chords
+        const times = [0, 0.15, 0.3, 0.45, 0.6, 0.75];
+        const durations = [0.12, 0.12, 0.12, 0.12, 0.12, 0.3];
+
+        function makeDistortionCurve(amount) {
+          let k = amount, n_samples = 44100, curve = new Float32Array(n_samples), deg = Math.PI / 180, x;
+          for (let i = 0; i < n_samples; ++i) {
+            x = i * 2 / n_samples - 1;
+            curve[i] = (3 + k) * x * 20 * deg / (Math.PI + k * Math.abs(x));
+          }
+          return curve;
+        }
+
+        const dist = this.ctx.createWaveShaper();
+        dist.curve = makeDistortionCurve(300);
+        dist.oversample = '4x';
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 2200;
+
+        const masterGain = this.ctx.createGain();
+        masterGain.gain.value = 0.3;
+
+        dist.connect(filter);
+        filter.connect(masterGain);
+        masterGain.connect(this.ctx.destination);
+
+        notes.forEach((freq, idx) => {
+          const osc1 = this.ctx.createOscillator();
+          const osc2 = this.ctx.createOscillator();
+          osc1.type = 'sawtooth';
+          osc2.type = 'square';
+
+          osc1.frequency.value = freq;
+          osc2.frequency.value = freq * 1.006; // Detuned stack
+
+          const noteGain = this.ctx.createGain();
+          const startTime = now + times[idx];
+          const dur = durations[idx];
+
+          noteGain.gain.setValueAtTime(0.8, startTime);
+          noteGain.gain.exponentialRampToValueAtTime(0.01, startTime + dur);
+
+          osc1.connect(noteGain);
+          osc2.connect(noteGain);
+          noteGain.connect(dist);
+
+          osc1.start(startTime);
+          osc2.start(startTime);
+          osc1.stop(startTime + dur);
+          osc2.stop(startTime + dur);
+        });
+      },
+
+      // Hurt Sound Synth
+      playHurt() {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(160, now);
+        osc.frequency.exponentialRampToValueAtTime(40, now + 0.25);
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.7, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      },
+
+      // Heal / Item Synth
+      playHeal() {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        [261.63, 329.63, 392.00, 523.25].forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          const g = this.ctx.createGain();
+          const t = now + idx * 0.07;
+          g.gain.setValueAtTime(0.3, t);
+          g.gain.exponentialRampToValueAtTime(0.01, t + 0.18);
+          osc.connect(g);
+          g.connect(this.ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.18);
+        });
+      }
+    };
+
+    const canvas = document.getElementById('ember-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class EmberParticle {
+      constructor() {
+        this.reset();
+      }
+
+      reset() {
+        this.x = Math.random() * canvas.width;
+        this.y = canvas.height + 10 + Math.random() * 20;
+        this.size = Math.random() * 3 + 1;
+        this.speedY = Math.random() * 1.5 + 0.5;
+        this.speedX = (Math.random() - 0.5) * 0.8;
+        this.opacity = Math.random() * 0.8 + 0.2;
+        this.color = Math.random() > 0.4 ? '#ff2a00' : '#ff7700';
+      }
+
+      update() {
+        this.y -= this.speedY;
+        this.x += this.speedX;
+        this.opacity -= 0.002;
+        if (this.y < -10 || this.opacity <= 0) {
+          this.reset();
+        }
+      }
+
+      draw() {
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = Math.max(0, this.opacity);
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    for (let i = 0; i < 75; i++) {
+      particles.push(new EmberParticle());
+    }
+
+    function animateEmbers() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+      requestAnimationFrame(animateEmbers);
+    }
+    animateEmbers();
+
+    let hudState = {
+      health: 100,
+      armor: 100,
+      ammo: 100,
+      godmode: false
+    };
+
+    const healthValEl = document.getElementById('hud-health-val');
+    const armorValEl = document.getElementById('hud-armor-val');
+    const ammoValEl = document.getElementById('hud-ammo-val');
+    const godBtn = document.getElementById('btn-god-mode');
+
+    function updateHUDDisplay() {
+      healthValEl.textContent = hudState.health + '%';
+      armorValEl.textContent = hudState.armor + '%';
+      ammoValEl.textContent = hudState.ammo;
+
+      // Update Doomguy face blood/expression
+      const woundLight = document.getElementById('wound-light');
+      const woundHeavy = document.getElementById('wound-heavy');
+      const mouth = document.getElementById('mouth');
+
+      if (hudState.health < 40) {
+        woundLight.setAttribute('opacity', '1');
+        woundHeavy.setAttribute('opacity', '1');
+        mouth.setAttribute('d', 'M 35 75 Q 50 60 65 75'); // Agony mouth
+      } else if (hudState.health < 75) {
+        woundLight.setAttribute('opacity', '1');
+        woundHeavy.setAttribute('opacity', '0');
+        mouth.setAttribute('d', 'M 35 70 Q 50 70 65 70'); // Flat mouth
+      } else {
+        woundLight.setAttribute('opacity', '0');
+        woundHeavy.setAttribute('opacity', '0');
+        mouth.setAttribute('d', 'M 35 70 Q 50 65 65 70'); // Aggressive smirk
+      }
+
+      // Godmode eyes
+      const godLeft = document.getElementById('god-left');
+      const godRight = document.getElementById('god-right');
+      if (hudState.godmode) {
+        godLeft.setAttribute('opacity', '1');
+        godRight.setAttribute('opacity', '1');
+      } else {
+        godLeft.setAttribute('opacity', '0');
+        godRight.setAttribute('opacity', '0');
+      }
+    }
+
+    // Eye movement interval
+    setInterval(() => {
+      if (hudState.godmode) return;
+      const leftP = document.getElementById('pupil-left');
+      const rightP = document.getElementById('pupil-right');
+      const offsets = [
+        { l: 32, r: 62 }, // Looking Left
+        { l: 35, r: 65 }, // Looking Center
+        { l: 38, r: 68 }  // Looking Right
+      ];
+      const pick = offsets[Math.floor(Math.random() * offsets.length)];
+      leftP.setAttribute('cx', pick.l);
+      rightP.setAttribute('cx', pick.r);
+    }, 2500);
+
+    // Screen Flash helper
+    function triggerFlash(color) {
+      const flash = document.getElementById('screen-flash');
+      flash.style.backgroundColor = color;
+      flash.style.opacity = '0.35';
+      setTimeout(() => {
+        flash.style.opacity = '0';
+      }, 100);
+    }
+
+    document.getElementById('btn-take-damage').addEventListener('click', () => {
+      if (hudState.godmode) {
+        logTerminal('> DANO BLOQUEADO! MODO IDDQD ATIVO.');
+        return;
+      }
+      hudState.health = Math.max(0, hudState.health - 25);
+      hudState.armor = Math.max(0, hudState.armor - 15);
+      AudioEngine.playHurt();
+      triggerFlash('#ff0000');
+      updateHUDDisplay();
+    });
+
+    document.getElementById('btn-use-medkit').addEventListener('click', () => {
+      hudState.health = Math.min(100, hudState.health + 25);
+      hudState.armor = Math.min(100, hudState.armor + 10);
+      AudioEngine.playHeal();
+      triggerFlash('#00ff41');
+      updateHUDDisplay();
+    });
+
+    godBtn.addEventListener('click', () => {
+      hudState.godmode = !hudState.godmode;
+      if (hudState.godmode) {
+        hudState.health = 100;
+        hudState.armor = 100;
+        godBtn.classList.add('active');
+        logTerminal('> CHEAT ATIVADO: IDDQD (GOD MODE ENABED)');
+        triggerFlash('#ffaa00');
+      } else {
+        godBtn.classList.remove('active');
+        logTerminal('> CHEAT DESATIVADO: IDDQD (GOD MODE DISABLED)');
+      }
+      updateHUDDisplay();
+    });
+
+    // Weapon firing dispatcher
+    function fireWeapon(type) {
+      if (hudState.ammo <= 0) {
+        logTerminal('> SEM MUNIÇÃO! USE MEDKIT OU CÓDIGO IDKFA.');
+        return;
+      }
+      hudState.ammo = Math.max(0, hudState.ammo - 10);
+      updateHUDDisplay();
+
+      const weaponValEl = document.getElementById('hud-weapon-val');
+
+      if (type === 'ssg') {
+        weaponValEl.textContent = 'SUPER SHOTGUN';
+        AudioEngine.playShotgun();
+        triggerFlash('#ff5500');
+      } else if (type === 'bfg') {
+        weaponValEl.textContent = 'BFG 9000';
+        AudioEngine.playBFG();
+        triggerFlash('#00ff41');
+      } else if (type === 'crucible') {
+        weaponValEl.textContent = 'CRUCIBLE BLADE';
+        AudioEngine.playCrucible();
+        triggerFlash('#ff0000');
+      } else if (type === 'plasma') {
+        weaponValEl.textContent = 'PLASMA RIFLE';
+        AudioEngine.playPlasma();
+        triggerFlash('#00d9ff');
+      }
+    }
+
+    const terminalLog = document.getElementById('terminal-log');
+    const terminalInput = document.getElementById('terminal-input');
+
+    function logTerminal(msg) {
+      const line = document.createElement('div');
+      line.className = 'terminal-line';
+      line.textContent = msg;
+      terminalLog.appendChild(line);
+      terminalLog.scrollTop = terminalLog.scrollHeight;
+    }
+
+    function executeCheat(code) {
+      const cleanCode = code.trim().toUpperCase();
+      logTerminal(`> ${cleanCode}`);
+
+      if (cleanCode === 'IDDQD') {
+        hudState.godmode = true;
+        hudState.health = 100;
+        hudState.armor = 100;
+        godBtn.classList.add('active');
+        logTerminal('> DEGREELESSNESS MODE ON (GOD MODE ATIVADO)');
+        triggerFlash('#ffaa00');
+      } else if (cleanCode === 'IDKFA') {
+        hudState.ammo = 200;
+        hudState.health = 100;
+        hudState.armor = 100;
+        logTerminal('> VERY HAPPY AMMO ADDED (MUNIÇÃO & ARMADURA NO MÁXIMO)');
+        triggerFlash('#00ff41');
+      } else if (cleanCode === 'IDCLIP' || cleanCode === 'IDSPISPOPD') {
+        logTerminal('> NO CLIPPING MODE ON (MODO FANTASMA ATIVADO)');
+        triggerFlash('#00d9ff');
+      } else if (cleanCode === 'SLAYER') {
+        hudState.godmode = true;
+        hudState.ammo = 999;
+        hudState.health = 200;
+        hudState.armor = 200;
+        godBtn.classList.add('active');
+        logTerminal('> SLAYER MODE OVERPOWERED ATIVADO!');
+        AudioEngine.playMetalRiff();
+        triggerFlash('#ff0000');
+      } else {
+        logTerminal(`> CÓDIGO INVÁLIDO: "${cleanCode}"`);
+      }
+
+      updateHUDDisplay();
+      terminalInput.value = '';
+    }
+
+    terminalInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        executeCheat(terminalInput.value);
+      }
+    });
+
+    // Global Key Listener for classic cheat typing anywhere on page
+    let keyBuffer = '';
+    window.addEventListener('keydown', (e) => {
+      if (document.activeElement === terminalInput) return;
+      keyBuffer += e.key.toUpperCase();
+      if (keyBuffer.length > 10) keyBuffer = keyBuffer.slice(-10);
+
+      if (keyBuffer.includes('IDDQD')) {
+        executeCheat('IDDQD');
+        keyBuffer = '';
+      } else if (keyBuffer.includes('IDKFA')) {
+        executeCheat('IDKFA');
+        keyBuffer = '';
+      } else if (keyBuffer.includes('IDCLIP')) {
+        executeCheat('IDCLIP');
+        keyBuffer = '';
+      }
+    });
+
+    const crtBtn = document.getElementById('btn-crt');
+    const crtOverlay = document.getElementById('crt-overlay');
+
+    crtBtn.addEventListener('click', () => {
+      crtOverlay.classList.toggle('active');
+    });
+
+    document.getElementById('btn-audio-synth').addEventListener('click', () => {
+      AudioEngine.playMetalRiff();
+    });
+
+    // Click on Doomguy face for easter egg
+    document.getElementById('doomguy-face-container').addEventListener('click', () => {
+      AudioEngine.playHurt();
+      logTerminal('> DOOMGUY ENRAGED!');
+      triggerFlash('#ff0000');
+    });
+  </script>
+</body>
+</html>
