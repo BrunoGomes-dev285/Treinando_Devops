@@ -68,5 +68,5 @@ jobs:
      with:
        file: dockerfile
        push: true
-       tags: brunogomessantana/_
+       tags: brunogomessantana/img_revolucao
        
